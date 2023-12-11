@@ -14,10 +14,4 @@ RUN go mod tidy
 
 COPY . /app
 
-RUN go build cmd/wc/main.go
-
-COPY docker-entrypoint.sh /app
-RUN chmod +x /app/docker-entrypoint.sh
-
-# ENTRYPOINT ["/app/docker-entrypoint.sh"]
-# CMD ["default"]
+RUN go build cmd/main.go

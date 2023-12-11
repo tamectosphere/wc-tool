@@ -59,8 +59,7 @@ func getFileName() string {
 func getIsPipe() bool {
 	stat, err := os.Stdin.Stat()
 	if err != nil {
-		fmt.Println("Error checking if stdin is a pipe:", err)
-		os.Exit(1)
+		log.Fatal(err)
 	}
 	return (stat.Mode() & os.ModeCharDevice) == 0
 }
@@ -76,8 +75,7 @@ func getFileContent(isPipe bool, fileName string) []byte {
 	}
 
 	if err != nil {
-		fmt.Println("Error reading file:", err)
-		os.Exit(1)
+		log.Fatal(err)
 	}
 
 	return file
@@ -95,7 +93,7 @@ func countBytes(fileContent []byte) int {
 }
 
 func countLines(fileContent []byte) int {
-	lines := strings.Split(string(fileContent), "\n")
+	lines := strings.Split(getContentString(fileContent), "\n")
 	return len(lines)
 }
 
@@ -119,17 +117,11 @@ func countCharacters(fileContent []byte) int {
 		fileContent = fileContent[3:]
 	}
 
-	count := 0
+	return utf8.RuneCountInString(getContentString(fileContent))
+}
 
-	for len(fileContent) > 0 {
-
-		_, size := utf8.DecodeRune(fileContent)
-		count++
-
-		fileContent = fileContent[size:]
-	}
-
-	return count
+func getContentString(fileContent []byte) string {
+	return strings.TrimSpace(string(fileContent))
 }
 
 func printFileStatistics(fileContent []byte, fileNameSuffix string) {
