@@ -23,7 +23,6 @@ func Process(args []string) {
 	fileContent := getFileContent(isPipe, fileName)
 
 	fileNameSuffix := generateFileNameSuffix(fileName)
-	println("fileNameSuffix =", fileNameSuffix)
 
 	switch option {
 	case "b":
