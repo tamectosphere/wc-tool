@@ -18,12 +18,12 @@ This tool was inspired by the [Word Count Challenge](https://codingchallenges.fy
 To use the `wc-tool` with standard input, you can pipe the content to the tool and specify an option:
 
 ```bash
-<some_command> | wc-tool <option>
+<some_command> | wc-tool -option <option>
 ```
 ### Example
 
 ```bash
-echo "Hello, world!" | wc-tool -w
+echo 'Hello, world!' | wc-tool -option w
 >>> Word count: 2
 ```
 ### File Input
@@ -31,18 +31,18 @@ echo "Hello, world!" | wc-tool -w
 To use the wc-tool with a file, provide the file name and an option:
 
 ```bash
-wc-tool <option> <filename>
+wc-tool -option <option> <filename>
 ```
 ### Example
 
 ```bash
-wc-tool -c example.txt
+wc-tool -option b example.txt
 >>> Byte count in example.txt: 51
 ```
 ## Available Options
 
-- `-c`: Print byte count.
-- `-l`: Print line count.
-- `-w`: Print word count.
-- `-m`: Print character count.
-- no options: Print byte, line, word, and character count.
+- `b`: Print byte count.
+- `l`: Print line count.
+- `w`: Print word count.
+- `m`: Print character count.
+- No option: Print byte, line, word, and character count.
