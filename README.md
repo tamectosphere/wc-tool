@@ -44,5 +44,5 @@ wc-tool -option b example.txt
 - `b`: Print byte count.
 - `l`: Print line count.
 - `w`: Print word count.
-- `m`: Print character count.
+- `c`: Print character count.
 - No option: Print byte, line, word, and character count.
