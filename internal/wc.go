@@ -14,13 +14,15 @@ import (
 
 func Process(args []string) {
 
-	option := getOption()
-
-	fileName := getFileName()
+	option, text, fileName := getFlagOptions()
 
 	isPipe := getIsPipe()
 
-	fileContent := getFileContent(isPipe, fileName)
+	if !isPipe {
+		validateTextAndFileName(text, fileName)
+	}
+
+	fileContent := getFileContent(isPipe, text, fileName)
 
 	fileNameSuffix := generateFileNameSuffix(fileName)
 
@@ -40,20 +42,44 @@ func Process(args []string) {
 	}
 }
 
-func getOption() string {
+func getFlagOptions() (string, string, string) {
 	var option string
+	var text string
+	var fileName string
 	flag.StringVar(&option, "option", "default", "Choose an option: b, l, w, c")
+	flag.StringVar(&text, "text", "", "Input text to process")
+	flag.StringVar(&fileName, "file", "", "Input file name to process")
 	flag.Parse()
 
-	return option
+	return option, text, fileName
+}
+
+func getText() string {
+	var text string
+	flag.StringVar(&text, "text", "", "Input text to process")
+	flag.Parse()
+
+	return text
 }
 
 func getFileName() string {
-	if flag.NArg() > 0 {
-		return flag.Arg(0)
+	var fileName string
+	flag.StringVar(&fileName, "file", "", "Input file name to process")
+	flag.Parse()
+
+	return fileName
+}
+
+func validateTextAndFileName(text string, fileName string) {
+	if text == "" && fileName == "" {
+		log.Fatal("both 'text' and 'fileName' options are empty, at least one must be provided")
 	}
 
-	return ""
+	if text != "" && fileName != "" {
+		log.Fatal("both 'text' and 'fileName' options are provided, but only one should be specified")
+	}
+
+	return
 }
 
 func getIsPipe() bool {
@@ -64,12 +90,14 @@ func getIsPipe() bool {
 	return (stat.Mode() & os.ModeCharDevice) == 0
 }
 
-func getFileContent(isPipe bool, fileName string) []byte {
+func getFileContent(isPipe bool, text string, fileName string) []byte {
 	var file []byte
 	var err error
 
 	if isPipe {
 		file, err = io.ReadAll(os.Stdin)
+	} else if text != "" {
+		file = []byte(text)
 	} else {
 		file, err = os.ReadFile(fileName)
 	}
