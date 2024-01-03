@@ -8,15 +8,16 @@ import (
 	"io"
 	"log"
 	"os"
+	"regexp"
 	"strings"
 	"unicode/utf8"
 )
 
-func Process(args []string) {
+func Process(args []string) map[string]interface{} {
 
-	option, text, fileName := getFlagOptions()
+	option, text, fileName, ignorePipe := getFlagOptions()
 
-	isPipe := getIsPipe()
+	isPipe := getIsPipe(ignorePipe)
 
 	if !isPipe {
 		validateTextAndFileName(text, fileName)
@@ -26,32 +27,47 @@ func Process(args []string) {
 
 	fileNameSuffix := generateFileNameSuffix(fileName)
 
+	result := make(map[string]interface{})
+
 	switch option {
 	case "b":
-		fmt.Printf("Byte count%s: %d\n", fileNameSuffix, countBytes(fileContent))
+		byteCount := countBytes(fileContent)
+		fmt.Printf("Byte count%s: %d\n", fileNameSuffix, byteCount)
+		result["byteCount"] = byteCount
 	case "l":
+		lineCount := countLines(fileContent)
 		fmt.Printf("Line count%s: %d\n", fileNameSuffix, countLines(fileContent))
+		result["lineCount"] = lineCount
 	case "w":
+		wordCount := countWords(fileContent)
 		fmt.Printf("Word count%s: %d\n", fileNameSuffix, countWords(fileContent))
+		result["wordCount"] = wordCount
 	case "c":
+		characterCount := countCharacters(fileContent)
 		fmt.Printf("Character count%s: %d\n", fileNameSuffix, countCharacters(fileContent))
+		result["characterCount"] = characterCount
 	case "default":
-		printFileStatistics(fileContent, fileNameSuffix)
+		result["fileStatistics"] = printFileStatistics(fileContent, fileNameSuffix)
 	default:
 		log.Fatal("Invalid option")
 	}
+
+	return result
 }
 
-func getFlagOptions() (string, string, string) {
+func getFlagOptions() (string, string, string, bool) {
 	var option string
 	var text string
 	var fileName string
+	var ignorePipe bool
+
 	flag.StringVar(&option, "option", "default", "Choose an option: b, l, w, c")
 	flag.StringVar(&text, "text", "", "Input text to process")
 	flag.StringVar(&fileName, "file", "", "Input file name to process")
+	flag.BoolVar(&ignorePipe, "ignore-pipe", false, "Ignore pipe condition (stdin not treated as a pipe)")
 	flag.Parse()
 
-	return option, text, fileName
+	return option, text, fileName, ignorePipe
 }
 
 func getText() string {
@@ -82,11 +98,16 @@ func validateTextAndFileName(text string, fileName string) {
 	return
 }
 
-func getIsPipe() bool {
+func getIsPipe(ignorePipe bool) bool {
+	if ignorePipe {
+		return false
+	}
+
 	stat, err := os.Stdin.Stat()
 	if err != nil {
 		log.Fatal(err)
 	}
+
 	return (stat.Mode() & os.ModeCharDevice) == 0
 }
 
@@ -121,7 +142,7 @@ func countBytes(fileContent []byte) int {
 }
 
 func countLines(fileContent []byte) int {
-	lines := strings.Split(getContentString(fileContent), "\n")
+	lines := strings.Split(getContentString(fileContent, true), "\n")
 	return len(lines)
 }
 
@@ -130,12 +151,29 @@ func countWords(fileContent []byte) int {
 	scanner.Split(bufio.ScanWords)
 
 	wordCount := 0
+	firstNonEmpty := false
+
+	whitespaceRegex := regexp.MustCompile(`[\s\p{C}]`)
+
 	for scanner.Scan() {
+		word := scanner.Text()
+
+		cleanedWord := whitespaceRegex.ReplaceAllString(word, " ")
+		trimmedWord := strings.TrimSpace(cleanedWord)
+
+		if !firstNonEmpty && trimmedWord == "" {
+
+			continue
+		}
+
+		firstNonEmpty = true
 		wordCount++
 	}
+
 	if err := scanner.Err(); err != nil {
 		log.Fatal(err)
 	}
+
 	return wordCount
 }
 
@@ -145,16 +183,34 @@ func countCharacters(fileContent []byte) int {
 		fileContent = fileContent[3:]
 	}
 
-	return utf8.RuneCountInString(getContentString(fileContent))
+	return utf8.RuneCountInString(getContentString(fileContent, false))
 }
 
-func getContentString(fileContent []byte) string {
-	return strings.TrimSpace(string(fileContent))
+func getContentString(fileContent []byte, isTrim bool) string {
+	if isTrim {
+		return strings.TrimSpace(string(fileContent))
+	}
+
+	return string(fileContent)
+
 }
 
-func printFileStatistics(fileContent []byte, fileNameSuffix string) {
-	fmt.Printf("Byte count%s: %d\n", fileNameSuffix, countBytes(fileContent))
-	fmt.Printf("Line count%s: %d\n", fileNameSuffix, countLines(fileContent))
-	fmt.Printf("Word count%s: %d\n", fileNameSuffix, countWords(fileContent))
-	fmt.Printf("Character count%s: %d\n", fileNameSuffix, countCharacters(fileContent))
+func printFileStatistics(fileContent []byte, fileNameSuffix string) map[string]interface{} {
+	byteCount := countBytes(fileContent)
+	lineCount := countLines(fileContent)
+	wordCount := countWords(fileContent)
+	characterCount := countCharacters(fileContent)
+
+	fmt.Printf("Byte count%s: %d\n", fileNameSuffix, byteCount)
+	fmt.Printf("Line count%s: %d\n", fileNameSuffix, lineCount)
+	fmt.Printf("Word count%s: %d\n", fileNameSuffix, wordCount)
+	fmt.Printf("Character count%s: %d\n", fileNameSuffix, characterCount)
+
+	stats := make(map[string]interface{})
+	stats["byteCount"] = byteCount
+	stats["lineCount"] = lineCount
+	stats["wordCount"] = wordCount
+	stats["characterCount"] = characterCount
+
+	return stats
 }
